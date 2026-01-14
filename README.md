@@ -20,8 +20,8 @@ Based on the [2DNesting](https://github.com/lryan599/2DNesting) C++ project.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nesting_python.git
-cd nesting_python
+git clone https://github.com/QuantumRaul/nesting_2d.git
+cd nesting_2d
 
 # Install dependencies
 pip install -r requirements.txt
