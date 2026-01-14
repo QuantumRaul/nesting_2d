@@ -13,19 +13,23 @@ TOLERANCE = 1e-7
 
 def rotate_polygon(polygon: Polygon, rotation: int) -> Polygon:
     """
-    Rotate a polygon by multiples of 90 degrees around the origin.
+    Rotate a polygon by multiples of 90 degrees around the origin,
+    then normalize so bounding box starts at (0, 0).
 
     Args:
         polygon: The polygon to rotate
         rotation: Rotation index (0=0°, 1=90°, 2=180°, 3=270°)
 
     Returns:
-        Rotated polygon
+        Rotated and normalized polygon
     """
     angle = (rotation % 4) * 90
     if angle == 0:
         return polygon
-    return affinity.rotate(polygon, angle, origin=(0, 0))
+    rotated = affinity.rotate(polygon, angle, origin=(0, 0))
+    # Normalize so bounding box starts at (0, 0)
+    minx, miny, _, _ = rotated.bounds
+    return affinity.translate(rotated, -minx, -miny)
 
 
 def translate_polygon(polygon: Polygon, dx: float, dy: float) -> Polygon:

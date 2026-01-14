@@ -98,7 +98,10 @@ class TransformedShape:
         # Apply rotation first (around origin)
         angle = self.rotation * 90  # 0, 90, 180, or 270 degrees
         rotated = affinity.rotate(self.base, angle, origin=(0, 0))
-        # Then translate
+        # Normalize rotated polygon so its bounding box starts at (0, 0)
+        minx, miny, _, _ = rotated.bounds
+        rotated = affinity.translate(rotated, -minx, -miny)
+        # Then apply the final translation
         self._transformed = affinity.translate(rotated, self.translate_x, self.translate_y)
 
     def set_position(self, x: float, y: float) -> None:
@@ -123,7 +126,10 @@ class TransformedShape:
     def rotated_base(self) -> Polygon:
         """Get the base polygon with current rotation applied (no translation)."""
         angle = self.rotation * 90
-        return affinity.rotate(self.base, angle, origin=(0, 0))
+        rotated = affinity.rotate(self.base, angle, origin=(0, 0))
+        # Normalize so bounding box starts at (0, 0)
+        minx, miny, _, _ = rotated.bounds
+        return affinity.translate(rotated, -minx, -miny)
 
     def get_reduced_rotations(self) -> List[int]:
         """

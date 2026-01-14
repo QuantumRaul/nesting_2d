@@ -516,6 +516,10 @@ def gomh(layout: Layout, max_time: int,
     # Shrink and try to improve
     shrink(layout)
 
+    # Track consecutive iterations without improvement to detect stagnation
+    no_improvement_count = 0
+    last_best_length = layout.best_length
+
     while (time.time() - start_time) < max_time:
         if stop_flag.is_set():
             print("Algorithm stopped by user")
@@ -529,20 +533,32 @@ def gomh(layout: Layout, max_time: int,
         if feasible:
             # Save as best result
             layout.update_cur_length()
+            old_best = layout.best_length
             layout.best_length = min(layout.best_length, layout.cur_length)
             layout.best_utilization = layout.total_area / (layout.best_length * layout.sheet.height)
             layout.best_result = [part.copy() for part in layout.parts]
 
-            # Report progress
-            elapsed = time.time() - start_time
-            progress_callback(layout.get_solution(elapsed))
+            # Check if we actually improved
+            if layout.best_length < old_best - 0.001:
+                no_improvement_count = 0
+                # Report progress
+                elapsed = time.time() - start_time
+                progress_callback(layout.get_solution(elapsed))
 
-            print(f"New best: length = {layout.best_length:.2f}, "
-                  f"utilization = {layout.best_utilization:.2%}")
+                print(f"New best: length = {layout.best_length:.2f}, "
+                      f"utilization = {layout.best_utilization:.2%}")
+            else:
+                no_improvement_count += 1
+                print(f"No improvement (best still {layout.best_length:.2f})")
 
             # Check if we've reached the lower bound
             if layout.best_length <= layout.lower_length * 1.001:
                 print("Reached lower bound!")
+                break
+
+            # Check for stagnation
+            if no_improvement_count >= 5:
+                print("No improvement after 5 iterations, stopping.")
                 break
 
             # Shrink further
@@ -551,8 +567,15 @@ def gomh(layout: Layout, max_time: int,
             # Couldn't find feasible solution, try expanding
             new_length = layout.cur_length * (1 + layout.rinc)
             if new_length >= layout.best_length:
-                # If expanding would exceed best, shrink from best instead
-                shrink(layout)
+                # Can't expand beyond best, and shrink would give same length
+                # Try a smaller shrink to explore different lengths
+                target_length = (layout.cur_length + layout.best_length) / 2
+                if target_length >= layout.best_length - 0.01:
+                    # Already very close to best, we're done optimizing
+                    print("Cannot improve further, stopping optimization.")
+                    break
+                layout.cur_length = target_length
+                layout.sheet.set_width(target_length)
             else:
                 expand(layout)
 
